@@ -17,6 +17,12 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Color fuelLowColor = Color.red;
     [SerializeField] private float lowFuelThreshold = 0.25f;
 
+    [Header("Boost Meter")]
+    [SerializeField] private Slider boostSlider;
+    [SerializeField] private Image boostFillImage;
+    [SerializeField] private Color boostReadyColor = Color.cyan;
+    [SerializeField] private Color boostChargingColor = Color.gray;
+
     [Header("End Screens")]
     [SerializeField] private GameObject levelCompletePanel;
     [SerializeField] private GameObject gameOverPanel;
@@ -51,6 +57,22 @@ public class UIManager : MonoBehaviour
         {
             float t = max > 0f ? current / max : 0f;
             fuelFillImage.color = t <= lowFuelThreshold ? fuelLowColor : fuelHighColor;
+        }
+    }
+
+    // value01: 0-1 boost meter fill. isReady: true once the boost can be triggered again.
+    public void UpdateBoostMeter(float value01, bool isReady)
+    {
+        if (boostSlider != null)
+        {
+            boostSlider.minValue = 0f;
+            boostSlider.maxValue = 1f;
+            boostSlider.value = value01;
+        }
+
+        if (boostFillImage != null)
+        {
+            boostFillImage.color = isReady ? boostReadyColor : boostChargingColor;
         }
     }
 
