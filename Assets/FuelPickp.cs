@@ -21,7 +21,7 @@ public class FuelPickup : MonoBehaviour
     private void Update()
     {
         
-        transform.Rotate(Vector3.up, rotateSpeed * Time.deltaTime);
+        transform.Rotate(Vector3.right, rotateSpeed * Time.deltaTime);
     }
 
     private void OnTriggerEnter(Collider other)
