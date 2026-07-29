@@ -15,6 +15,14 @@ public class FlyController : MonoBehaviour
     public float boostDuration = 3f;     // how long the boost lasts
     public float boostCooldown = 5f;     // time to refill the meter after use
 
+    [Header("City Collision")]
+    [Tooltip("Set this to the 'City' layer in the Inspector. Only colliders on this layer will block the player.")]
+    public LayerMask cityLayerMask;
+    [Tooltip("Roughly the radius of the player's body, used for the collision sweep.")]
+    public float collisionRadius = 0.4f;
+    [Tooltip("Small buffer kept between the player and a wall so they stop just short of it instead of touching it.")]
+    public float skinWidth = 0.05f;
+
     private enum BoostState { Ready, Boosting, Cooldown }
     private BoostState boostState = BoostState.Ready;
     private float boostTimer;
@@ -54,6 +62,9 @@ public class FlyController : MonoBehaviour
         }
         currentHeight = Mathf.Clamp(transform.position.y, currentHeight, maxFloatHeight);
         transform.position = new Vector3(transform.position.x, currentHeight, transform.position.z);
+
+        
+        ResolveCityOverlap();
     }
 
     // Called by JetpackPickup when the player collides with a jetpack
@@ -119,11 +130,60 @@ public class FlyController : MonoBehaviour
 
         Vector3 forward = freeLookCamera.transform.forward;
         Vector3 flyDirection = forward.normalized;
-        currentHeight += flyDirection.y * currentSpeed * Time.deltaTime;
-        currentHeight = Mathf.Clamp(currentHeight, minFloatHeight, maxFloatHeight);
 
-        transform.position += flyDirection * currentSpeed * Time.deltaTime;
-        transform.position = new Vector3(transform.position.x, currentHeight, transform.position.z);
+        float desiredHeight = Mathf.Clamp(currentHeight + flyDirection.y * currentSpeed * Time.deltaTime, minFloatHeight, maxFloatHeight);
+
+        Vector3 desiredPosition = transform.position + flyDirection * currentSpeed * Time.deltaTime;
+        desiredPosition.y = desiredHeight;
+
+        
+        Vector3 safePosition = GetCollisionSafePosition(transform.position, desiredPosition);
+
+        transform.position = safePosition;
+        currentHeight = safePosition.y;
+    }
+
+   
+    private Vector3 GetCollisionSafePosition(Vector3 fromPosition, Vector3 desiredPosition)
+    {
+        Vector3 movement = desiredPosition - fromPosition;
+        float distance = movement.magnitude;
+
+        if (distance < 0.0001f)
+        {
+            return desiredPosition;
+        }
+
+        Vector3 direction = movement / distance;
+
+        if (Physics.SphereCast(fromPosition, collisionRadius, direction, out RaycastHit hit, distance + skinWidth, cityLayerMask, QueryTriggerInteraction.Ignore))
+        {
+            float safeDistance = Mathf.Max(hit.distance - skinWidth, 0f);
+            return fromPosition + direction * safeDistance;
+        }
+
+        return desiredPosition;
+    }
+
+    
+    private void ResolveCityOverlap()
+    {
+        Collider[] overlaps = Physics.OverlapSphere(transform.position, collisionRadius, cityLayerMask, QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < overlaps.Length; i++)
+        {
+            Vector3 closestPoint = overlaps[i].ClosestPoint(transform.position);
+            Vector3 offset = transform.position - closestPoint;
+            float overlapDistance = offset.magnitude;
+
+            if (overlapDistance < collisionRadius)
+            {
+                Vector3 pushDirection = overlapDistance > 0.0001f ? offset / overlapDistance : Vector3.up;
+                float pushAmount = collisionRadius - overlapDistance;
+                transform.position += pushDirection * pushAmount;
+                currentHeight = transform.position.y;
+            }
+        }
     }
 
     private void DisableMovement()
