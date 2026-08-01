@@ -128,7 +128,7 @@ public class FlyController : MonoBehaviour
         // apply the boost multiplier only while actively boosting
         float currentSpeed = moveSpeed * (boostState == BoostState.Boosting ? boostMultiplier : 1f);
 
-        Vector3 forward = freeLookCamera.transform.forward;
+        Vector3 forward = transform.forward;
         Vector3 flyDirection = forward.normalized;
 
         float desiredHeight = Mathf.Clamp(currentHeight + flyDirection.y * currentSpeed * Time.deltaTime, minFloatHeight, maxFloatHeight);
